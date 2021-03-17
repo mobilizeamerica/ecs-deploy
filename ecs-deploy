@@ -570,14 +570,17 @@ function runTask {
         TASK_JSON=$($AWS_ECS describe-tasks --cluster "$CLUSTER"  --tasks "$TASK_ARN")
 
         TASK_STATUS=$(echo $TASK_JSON | jq -r  '.tasks[0].lastStatus')
-        TASK_EXIT_CODE=$(echo $TASK_JSON | jq -r  '.tasks[0].containers[0].exitCode')
+        # read newline separated exit codes into TASK_EXIT_CODES array
+        readarray -t TASK_EXIT_CODES < <(echo $TASK_JSON | jq -r  '.tasks[0].containers[].exitCode')
 
         if [ $TASK_STATUS == "STOPPED" ]; then
             echo "Task finished with status: $TASK_STATUS"
-            if [ $TASK_EXIT_CODE != 0 ]; then
-                echo "Task execution failed with exit code: $TASK_EXIT_CODE"
-                exit 1
-            fi
+            for TASK_EXIT_CODE in "${TASK_EXIT_CODES[@]}"; do
+              if [ $TASK_EXIT_CODE != 0 ]; then
+                  echo "Task execution failed with exit code: $TASK_EXIT_CODE"
+                  exit 1
+              fi
+            done
             RUN_TASK_SUCCESS=true
             break;
         fi
