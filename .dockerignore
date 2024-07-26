@@ -1,0 +1,8 @@
+*.aes
+local.env
+def
+newdef
+results
+tasks
+.idea/
+dockercfg
